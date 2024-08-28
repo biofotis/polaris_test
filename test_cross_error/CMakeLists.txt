@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(test_cross_error)
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   std_msgs
   rostest
   roslaunch
 )
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs
+  CATKIN_DEPENDS std_msgs
 )
 
 if(CATKIN_ENABLE_TESTING)
