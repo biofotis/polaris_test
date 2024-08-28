@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="test_cross_error" type="pure_pursuit_sim_mod.py" name="pure_pursuit_sim_mod_node" output="screen" />
+    <test test-name="test_cross_error" pkg="test_cross_error" type="test_cross_error.py" />
+</launch>

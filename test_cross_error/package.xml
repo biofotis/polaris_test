@@ -1,0 +1,24 @@
+<package format="2">
+  <name>test_cross_error</name>
+  <version>0.0.1</version>
+  <description>Testing cross_track_error topic for errors.</description>
+
+  <maintainer email="biofotis@hotmail.com">Your Name</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <test_depend>rostest</test_depend>
+  <test_depend>roslaunch</test_depend>
+  <test_depend>rospy</test_depend>
+  <test_depend>std_msgs</test_depend>
+
+  <export>
+    <build_type>catkin</build_type>
+  </export>
+</package>
