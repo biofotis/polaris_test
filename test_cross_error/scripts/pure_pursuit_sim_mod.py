@@ -26,6 +26,7 @@ from geometry_msgs.msg import Twist, Vector3
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import LaserScan
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from std_msgs.msg import Float32
 
 # Gazebo Headers
 from gazebo_msgs.srv import GetModelState
@@ -51,7 +52,7 @@ class PurePursuit(object):
         self.ackermann_msg.steering_angle          = 0.0
 
         self.ackermann_pub = rospy.Publisher('/gem/ackermann_cmd', AckermannDrive, queue_size=1)
-
+        self.cross_error_pub = rospy.Publisher('/cross_track_error', Float32, queue_size=10)
 
     # import waypoints.csv into a list (path_points)
     def read_waypoints(self):
@@ -144,7 +145,8 @@ class PurePursuit(object):
 
             ct_error = round(np.sin(alpha) * L, 3)
 
-            print("Crosstrack Error: " + str(ct_error))
+            #print("Crosstrack Error: " + str(ct_error))
+            self.cross_error_pub.publish(ct_error)
 
             # implement constant pure pursuit controller
             self.ackermann_msg.speed          = 2.8
