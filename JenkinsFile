@@ -1,0 +1,138 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: docker
+    image: docker:20.10-dind
+    command:
+    - dockerd-entrypoint.sh
+    args:
+    - --host=tcp://0.0.0.0:2375
+    - --host=unix:///var/run/docker.sock
+    tty: true
+    securityContext:
+      privileged: true
+"""
+        }
+    }
+    environment {
+        IMAGE_NAME = 'polaris_test'
+        CONTAINER_NAME = 'test_error_container'
+        WORKSPACE_PATH = "${env.WORKSPACE}"
+        DOCKER_REGISTRY = "fotiosp"
+        DOCKER_USER = "fotiosp"
+        DOCKER_TOKEN = "removed"
+        EMAIL_RECIPIENT = "fotios@outlook.com"
+        SENDGRID_API_KEY = "removed"
+        FROM_EMAIL = "biofotis@hotmail.com"
+        SUBJECT_SUCCESS = "Jenkins Build Success: ${IMAGE_NAME}"
+        SUBJECT_FAILURE = "Jenkins Build Failure: ${IMAGE_NAME}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                container('docker') {
+                    git branch: 'main', url: 'https://github.com/biofotis/polaris_test.git'
+                }
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                container('docker') {
+                    sh """
+                    #docker pull ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
+                    #docker tag ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest ${IMAGE_NAME}:latest
+                    DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --tag ${IMAGE_NAME} .
+                    """
+                }
+            }
+        }
+        stage('Start container') {
+            steps {
+                container('docker') {
+                    sh '''
+                    docker run -idt -v ${WORKSPACE_PATH}/test_cross_error:/home/src/test_cross_error --name ${CONTAINER_NAME} ${IMAGE_NAME}:latest
+                    '''
+                }
+            }
+        }
+        stage('execute test in Container') {
+            steps {
+                container('docker') {
+                    sh '''
+                    docker exec ${CONTAINER_NAME} /bin/bash -c "source /home/devel/setup.bash; rostest test_cross_error test_cross_error.test"
+                    '''
+                }
+            }
+        }
+        // stage('archive test results') {
+        //     steps {
+        //         container('docker') {
+        //             sh '''
+        //             docker cp ${CONTAINER_NAME}/home/build/test_results ${WORKSPACE_PATH}
+        //             '''
+        //         }
+        //     }
+        // }        
+        stage('Push image to registry') {
+            steps {
+                container('docker') {
+                    sh '''
+                    docker tag ${IMAGE_NAME}:latest ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
+                    echo ${DOCKER_TOKEN} | docker login -u ${DOCKER_USER} --password-stdin
+                    docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
+                    '''
+                }
+            }
+        }
+    }
+    post {
+        always {
+            container('docker') {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
+                sh "docker rmi ${IMAGE_NAME} || true"
+            }
+        }
+    success {
+            container('docker') {
+                sh """
+                apk update
+                apk add --no-cache curl
+                curl -X POST \
+                    --url https://api.sendgrid.com/v3/mail/send \
+                    -H 'Authorization: Bearer ${SENDGRID_API_KEY}' \
+                    -H 'Content-Type: application/json' \
+                    -d '{
+                        "personalizations": [{"to": [{"email": "${EMAIL_RECIPIENT}"}]}],
+                        "from": {"email": "${FROM_EMAIL}"},
+                        "subject": "${SUBJECT_SUCCESS}",
+                        "content": [{"type": "text/plain", "value": "Build and tests succeeded for ${IMAGE_NAME}."}]
+                    }'
+                """
+            }
+        }
+    failure {
+            container('docker') {
+                sh """
+                apk update
+                apk add --no-cache curl
+                curl -X POST \
+                    --url https://api.sendgrid.com/v3/mail/send \
+                    -H 'Authorization: Bearer ${SENDGRID_API_KEY}' \
+                    -H 'Content-Type: application/json' \
+                    -d '{
+                        "personalizations": [{"to": [{"email": "${EMAIL_RECIPIENT}"}]}],
+                        "from": {"email": "${FROM_EMAIL}"},
+                        "subject": "${SUBJECT_FAILURE}",
+                        "content": [{"type": "text/plain", "value": "Build or tests failed for ${IMAGE_NAME}."}]
+                    }'
+                """
+            }
+    }
+    }
+}
