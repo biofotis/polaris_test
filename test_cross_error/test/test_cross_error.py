@@ -18,6 +18,7 @@ class TestCrossTrackError(unittest.TestCase):
 
     def test_cross_track_error(self):
         start_time = rospy.Time.now()
+        # Added a hardcoded value of 30 seconds here. I could use an arg in launch file to customize this later
         while not rospy.is_shutdown() and (rospy.Time.now() - start_time).to_sec() < 30:
             rospy.sleep(1)
         self.assertGreater(len(self.cross_track_errors), 0, "Did not receive any messages on /cross_track_error")

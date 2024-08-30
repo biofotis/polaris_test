@@ -64,7 +64,7 @@ spec:
             steps {
                 container('docker') {
                     sh '''
-                    docker exec ${CONTAINER_NAME} /bin/bash -c "source /home/devel/setup.bash; rostest test_cross_error test_cross_error.test"
+                    docker exec ${CONTAINER_NAME} /bin/bash -c "export ROS_TEST_RESULTS_DIR='/home/build/test_results';source /home/devel/setup.bash; rostest test_cross_error test_cross_error.test"
                     '''
                 }
             }
@@ -74,6 +74,7 @@ spec:
         //         container('docker') {
         //             sh '''
         //             docker cp ${CONTAINER_NAME}/home/build/test_results ${WORKSPACE_PATH}
+        //             junit '${WORKSPACE_PATH}/test_results/**/*.xml'
         //             '''
         //         }
         //     }

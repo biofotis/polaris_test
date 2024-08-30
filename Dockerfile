@@ -62,7 +62,6 @@ RUN --mount=type=cache,target=/root/.cache \
     /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
 
 # Source the setup file
-#RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 RUN echo "source /home/devel/setup.bash" >> ~/.bashrc
 RUN /bin/bash -c "source ~/.bashrc"
 
